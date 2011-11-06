@@ -96,6 +96,14 @@ class test_ModelEntry(unittest.TestCase):
         self.assertGreater(e3.last_run_at, e2.last_run_at)
         self.assertEqual(e3.total_run_count, 1)
 
+    def test_no_duplicate_schedule(self):
+        PeriodicTask.objects.all().delete()
+        CrontabSchedule.objects.all().delete()
+        four_am_scheudle = CrontabSchedule.objects.create(minute="0",
+                hour="4", day_of_week="*")
+        scheduler = TrackingScheduler()
+        cleanup = scheduler.schedule['celery.backend_cleanup']
+        self.assertTrue(four_am_scheudle.pk == cleanup.model.crontab.pk)
 
 class test_DatabaseScheduler(unittest.TestCase):
     Scheduler = TrackingScheduler

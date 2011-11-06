@@ -74,8 +74,15 @@ class ModelEntry(ScheduleEntry):
     def to_model_schedule(cls, schedule):
         for schedule_type, model_type, model_field in cls.model_schedules:
             if isinstance(schedule, schedule_type):
-                model_schedule = model_type.from_schedule(schedule)
-                model_schedule.save()
+                model = model_type.from_schedule(schedule)
+                fields = [f for f in model._meta.fields if not f.auto_created]
+                values = dict([(f.name, getattr(model, f.name)) for f in fields])
+                models = model_type.objects.filter(**values)
+                # there is no guareentee that the schedule entry with these given
+                # values is unique within the backend, therefore we can't use
+                # get_or_create, instead use the first value found, it not found
+                # create a new schedule instance
+                model_schedule = models[0] if models else model_type.objects.create(**values)
                 return model_schedule, model_field
         raise ValueError("Can't convert schedule type %r to model" % schedule)
 
